@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Carnet">
+<title>Carnet de Paul</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : en-tête collant avec onglets, saisie rapide en haut, listes en dessous. */
+:root {
+  --bg: #eef0ec; --surface: #fbfcfa; --ink: #18201c; --muted: #5b6660; --line: #d5dad4;
+  --accent: #23409a; --accent-ink: #ffffff; --danger: #b8322a;
+  --c-devoir: #b8322a; --c-eval: #b06d12; --c-courses: #2c7a4b; --c-pro: #23409a; --c-perso: #7b4aa8; --c-aucune: #5b6660;
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Instrument Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121614; --surface: #1a201d; --ink: #e8ece9; --muted: #9aa6a0; --line: #2b332f;
+    --accent: #8fa6ff; --accent-ink: #0e1430; --danger: #ff7b6e;
+    --c-devoir: #ff7b6e; --c-eval: #f0b04a; --c-courses: #6cc993; --c-pro: #8fa6ff; --c-perso: #c39bf0; --c-aucune: #9aa6a0;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+#etat:empty { display: none; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 16px/1.45 var(--body);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.enveloppe { max-width: 880px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header {
+  position: sticky; top: 0; z-index: 5; background: var(--bg);
+  padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--line);
+}
+.barre { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px 4px; }
+h1 { font: 700 1.5rem/1 var(--display); margin: 0; letter-spacing: -0.01em; }
+nav { display: flex; gap: 4px; overflow-x: auto; padding-block: 6px 10px; scrollbar-width: none; }
+nav::-webkit-scrollbar { display: none; }
+nav a {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+  color: var(--muted); text-decoration: none; font-weight: 500; font-size: 0.95rem; white-space: nowrap;
+}
+nav a[aria-current="page"] { background: var(--ink); color: var(--bg); }
+nav a .nb { font: 500 0.75rem var(--mono); opacity: 0.8; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lien { background: none; border: 0; color: var(--muted); font-size: 0.85rem; text-decoration: underline; padding: 4px; }
+
+main { padding-block: 16px 48px; display: grid; gap: 16px; }
+main > * { min-width: 0; }
+.carte { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+
+#ajout { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; }
+#ajout input, #ajout select, #connexion input {
+  min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+}
+.principal { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 600; }
+@media (max-width: 640px) {
+  #ajout { grid-template-columns: 1fr 1fr; }
+  #note-texte { grid-column: 1 / -1; }
+  #ajout .principal { grid-column: 1 / -1; }
+}
+#etat { margin: 0; min-height: 1.2em; font-size: 0.9rem; color: var(--muted); }
+#etat.erreur { color: var(--danger); }
+
+h2 { font: 700 1.1rem/1.2 var(--display); margin: 0 0 8px; }
+.colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .colonnes { grid-template-columns: 1fr; } }
+.colonnes > * { min-width: 0; }
+ul.notes { list-style: none; margin: 0; padding: 0; }
+.note { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.note:first-child { border-top: 0; }
+.note input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); }
+.note-texte { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.note.fait .note-texte { text-decoration: line-through; color: var(--muted); }
+.meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
+.meta select {
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; background: var(--bg);
+  color: var(--cat, var(--c-aucune)); font-weight: 600; font-size: 0.8rem;
+}
+.echeance { font-family: var(--mono); }
+.echeance.retard { color: var(--danger); font-weight: 500; }
+.suppr { background: none; border: 0; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 2px 4px; }
+.vide { color: var(--muted); margin: 0; }
+details summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; padding-top: 10px; }
+
+.edt-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.edt-nav button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 6px 12px; }
+.defile { overflow-x: auto; }
+#edt-zone {
+  min-width: 480px;
+  --edt-bg: var(--surface); --edt-fg: var(--ink); --edt-muted: var(--muted); --edt-line: var(--line);
+  --edt-w: 100%; --edt-h: 520px; --edt-radius: 0; --edt-font: var(--body); --edt-mono: var(--mono);
+}
+#edt-zone .edt { padding: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+#connexion p { margin: 0 0 12px; max-width: 62ch; }
+#connexion form { display: grid; gap: 10px; max-width: 420px; }
+#connexion label { display: grid; gap: 4px; font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) { nav a { transition: background 0.15s, color 0.15s; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="enveloppe">
+    <div class="barre">
+      <h1>Carnet</h1>
+      <button class="lien" id="deconnexion" type="button" hidden>Se déconnecter</button>
+    </div>
+    <nav id="onglets" aria-label="Onglets" hidden></nav>
+  </div>
+</header>
+
+<main class="enveloppe">
+  <section id="connexion" class="carte" hidden>
+    <h2>Connexion</h2>
+    <p>Tes notes et ton emploi du temps sont rangés dans ton dépôt GitHub privé. Colle ton jeton d'accès une seule fois sur cet appareil.</p>
+    <form id="form-connexion">
+      <label for="depot">Dépôt privé
+        <input id="depot" required autocomplete="off" autocapitalize="off" spellcheck="false" value="Paulleb08/notes-prive">
+      </label>
+      <label for="jeton">Jeton d'accès GitHub
+        <input id="jeton" type="password" required autocomplete="off" placeholder="github_pat_…">
+      </label>
+      <button class="principal" type="submit">Se connecter</button>
+    </form>
+  </section>
+
+  <form id="ajout" class="carte" hidden>
+    <input id="note-texte" required placeholder="Note, devoir, truc à acheter…" autocomplete="off" aria-label="Nouvelle note">
+    <select id="note-cat" aria-label="Catégorie"></select>
+    <input id="note-date" type="date" aria-label="Échéance (facultatif)">
+    <button class="principal" type="submit">Ajouter</button>
+  </form>
+  <p id="etat" role="status" aria-live="polite"></p>
+  <div id="vue"></div>
+</main>
+
+<script type="module">
+import { renderWeek } from "./emploi-du-temps.widget/edt.js";
+
+const CATS = { devoir: "Devoir à rendre", eval: "Révision / éval", courses: "Courses / pense-bête", pro: "Projet pro", perso: "Projet perso" };
+const ONGLETS = {
+  trier:   { titre: "À trier", filtre: (n) => !CATS[n.cat], defaut: "" },
+  devoirs: { titre: "Devoirs & évals", filtre: (n) => n.cat === "devoir" || n.cat === "eval", defaut: "devoir" },
+  courses: { titre: "Courses & pense-bête", filtre: (n) => n.cat === "courses", defaut: "courses" },
+  projets: { titre: "Projets", filtre: (n) => n.cat === "pro" || n.cat === "perso", defaut: "pro" },
+  edt:     { titre: "Emploi du temps" },
+};
+
+const $ = (id) => document.getElementById(id);
+const stock = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+  del: (k) => { try { localStorage.removeItem(k); } catch {} },
+};
+let cfg = { depot: stock.get("depot"), jeton: stock.get("jeton") };
+let notes = [], sha = null, cours = null, decalage = 0, enCours = 0, file = Promise.resolve();
+
+function etat(msg, erreur = false) { $("etat").textContent = msg; $("etat").className = erreur ? "erreur" : ""; }
+
+// --- GitHub : les données vivent dans le dépôt privé, ce site public n'en contient aucune ---
+function gh(chemin, opts = {}) {
+  return fetch(`https://api.github.com/repos/${cfg.depot}${chemin}`, {
+    ...opts, cache: "no-store",
+    headers: { Authorization: `Bearer ${cfg.jeton}`, Accept: "application/vnd.github+json" },
+  });
+}
+const b64dec = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, "")), (c) => c.charCodeAt(0)));
+const b64enc = (s) => { let t = ""; for (const o of new TextEncoder().encode(s)) t += String.fromCharCode(o); return btoa(t); };
+
+async function lireJSON(fichier) {
+  const r = await gh(`/contents/${fichier}`);
+  if (r.status === 404) return { data: null, sha: null };
+  if (r.status === 401) throw new Error("Jeton refusé par GitHub : reconnecte-toi avec un jeton valide.");
+  if (!r.ok) throw new Error(`GitHub a répondu ${r.status} en lisant ${fichier}.`);
+  const j = await r.json();
+  const data = JSON.parse(b64dec(j.content));
+  if (!Array.isArray(data)) throw new Error(`${fichier} n'est pas une liste : je n'y touche pas.`);
+  return { data, sha: j.sha };
+}
+
+async function chargerNotes() {
+  const r = await lireJSON("notes.json");
+  notes = r.data || []; sha = r.sha;
+}
+
+// Chaque modification est rejouable sans effet de bord : en cas de conflit on relit le fichier et on la réapplique.
+function modifier(op, message) {
+  op(notes); afficher();
+  enCours++;
+  file = file.then(async () => {
+    for (let essai = 0; essai < 3; essai++) {
+      op(notes);
+      const r = await gh("/contents/notes.json", {
+        method: "PUT",
+        body: JSON.stringify({ message, content: b64enc(JSON.stringify(notes, null, 1) + "\n"), ...(sha ? { sha } : {}) }),
+      });
+      if (r.ok) { sha = (await r.json()).content.sha; etat(""); return; }
+      if (r.status === 409 || r.status === 422) { await chargerNotes(); continue; }
+      throw new Error(`Enregistrement refusé par GitHub (${r.status}).`);
+    }
+    throw new Error("Conflit d'enregistrement répété : recharge la page.");
+  }).catch(async (e) => {
+    etat(e.message, true);
+    try { await chargerNotes(); } catch {}
+    afficher();
+  }).finally(() => { enCours--; });
+}
+const ajouter = (note) => (ns) => { if (!ns.some((n) => n.id === note.id)) ns.push(note); };
+const changer = (id, champs) => (ns) => { const n = ns.find((x) => x.id === id); if (n) Object.assign(n, champs); };
+const retirer = (id) => (ns) => { const i = ns.findIndex((x) => x.id === id); if (i >= 0) ns.splice(i, 1); };
+
+// --- Affichage ---
+const ongletActif = () => (ONGLETS[location.hash.slice(1)] ? location.hash.slice(1) : "trier");
+const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+function libelleDate(iso) {
+  if (iso === aujourdhui()) return "Aujourd'hui";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d), dem = new Date(); dem.setDate(dem.getDate() + 1);
+  if (dt.toDateString() === dem.toDateString()) return "Demain";
+  return dt.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+}
+
+const cleDate = (n) => n.due || "9999";
+const tri = (a, b) => (a.done - b.done) || cleDate(a).localeCompare(cleDate(b)) || (b.created || "").localeCompare(a.created || "");
+
+function el(tag, cls, texte) { const e = document.createElement(tag); if (cls) e.className = cls; if (texte != null) e.textContent = texte; return e; }
+
+function ligne(n) {
+  const li = el("li", "note" + (n.done ? " fait" : ""));
+  const cb = el("input"); cb.type = "checkbox"; cb.checked = !!n.done; cb.id = "fait-" + n.id;
+  cb.setAttribute("aria-label", "Fait : " + n.text);
+  cb.onchange = () => modifier(changer(n.id, { done: cb.checked }), cb.checked ? "Fait" : "À refaire");
+  const suppr = el("button", "suppr", "×"); suppr.type = "button"; suppr.setAttribute("aria-label", "Supprimer : " + n.text);
+  suppr.onclick = () => modifier(retirer(n.id), "Note supprimée");
+  const meta = el("div", "meta");
+  const sel = el("select"); sel.id = "cat-" + n.id; sel.setAttribute("aria-label", "Catégorie");
+  for (const [v, t] of [["", "À trier"], ...Object.entries(CATS)]) { const o = el("option", null, t); o.value = v; sel.append(o); }
+  sel.value = CATS[n.cat] ? n.cat : "";
+  sel.style.setProperty("--cat", `var(--c-${CATS[n.cat] ? n.cat : "aucune"})`);
+  sel.onchange = () => modifier(changer(n.id, { cat: sel.value }), "Catégorie changée");
+  meta.append(sel);
+  if (n.due) meta.append(el("span", "echeance" + (!n.done && n.due < aujourdhui() ? " retard" : ""), libelleDate(n.due)));
+  if (n.source) meta.append(el("span", null, n.source));
+  li.append(cb, el("span", "note-texte", n.text), suppr, meta);
+  return li;
+}
+
+function liste(titre, items, videTexte) {
+  const bloc = el("section", "carte");
+  if (titre) bloc.append(el("h2", null, titre));
+  const actives = items.filter((n) => !n.done).sort(tri), faites = items.filter((n) => n.done).sort(tri);
+  if (!actives.length) bloc.append(el("p", "vide", videTexte));
+  const ul = el("ul", "notes"); actives.forEach((n) => ul.append(ligne(n))); bloc.append(ul);
+  if (faites.length) {
+    const det = el("details"); det.append(el("summary", null, `Fait (${faites.length})`));
+    const ul2 = el("ul", "notes"); faites.forEach((n) => ul2.append(ligne(n))); det.append(ul2); bloc.append(det);
+  }
+  return bloc;
+}
+
+function afficherEdt() {
+  const zone = $("edt-zone");
+  if (zone) zone.innerHTML = cours === null ? "<p>Chargement…</p>" : renderWeek(new Date(), decalage, cours);
+}
+
+function afficher() {
+  const actif = ongletActif();
+  const nav = $("onglets"); nav.replaceChildren();
+  for (const [cle, o] of Object.entries(ONGLETS)) {
+    const a = el("a"); a.href = "#" + cle; a.append(o.titre);
+    if (o.filtre) { const nb = notes.filter((n) => o.filtre(n) && !n.done).length; if (nb) a.append(el("span", "nb", String(nb))); }
+    if (cle === actif) a.setAttribute("aria-current", "page");
+    nav.append(a);
+  }
+  $("ajout").hidden = actif === "edt";
+  const vue = $("vue"); vue.replaceChildren();
+
+  if (actif === "edt") {
+    const carte = el("section", "carte");
+    const navs = el("div", "edt-nav");
+    for (const [t, f] of [["‹ Précédente", () => decalage--], ["Cette semaine", () => (decalage = 0)], ["Suivante ›", () => decalage++]]) {
+      const b = el("button", null, t); b.type = "button"; b.onclick = () => { f(); afficherEdt(); }; navs.append(b);
+    }
+    const defile = el("div", "defile"); const zone = el("div"); zone.id = "edt-zone"; defile.append(zone);
+    carte.append(navs, defile);
+    if (Array.isArray(cours) && !cours.length) carte.append(el("p", "vide", "Aucun cours trouvé : ajoute edt.json dans ton dépôt privé."));
+    vue.append(carte);
+    afficherEdt();
+    return;
+  }
+
+  const o = ONGLETS[actif];
+  if ($("note-cat").dataset.onglet !== actif) { $("note-cat").value = o.defaut; $("note-cat").dataset.onglet = actif; }
+  const items = notes.filter(o.filtre);
+  if (actif === "projets") {
+    const cols = el("div", "colonnes");
+    cols.append(liste("Pro", items.filter((n) => n.cat === "pro"), "Aucun projet pro."), liste("Perso", items.filter((n) => n.cat === "perso"), "Aucun projet perso."));
+    vue.append(cols);
+  } else {
+    const vides = { trier: "Rien à trier. Note ce que tu veux ci-dessus, sans catégorie si tu ne sais pas où le ranger.", devoirs: "Aucun devoir ni éval en attente.", courses: "Liste vide." };
+    vue.append(liste(null, items, vides[actif]));
+  }
+}
+
+// --- Démarrage ---
+for (const [v, t] of [["", "À trier"], ...Object.entries(CATS)]) { const op = el("option", null, t); op.value = v; $("note-cat").append(op); }
+
+$("ajout").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const texte = $("note-texte").value.trim();
+  if (!texte) return;
+  const note = { id: crypto.randomUUID(), text: texte, cat: $("note-cat").value, due: $("note-date").value || null, done: false, created: new Date().toISOString() };
+  modifier(ajouter(note), "Nouvelle note");
+  $("note-texte").value = ""; $("note-date").value = ""; $("note-texte").focus();
+});
+
+$("form-connexion").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  cfg = { depot: $("depot").value.trim(), jeton: $("jeton").value.trim() };
+  etat("Vérification…");
+  try {
+    const r = await gh("");
+    if (!r.ok) throw new Error(r.status === 404 || r.status === 401 ? "Dépôt introuvable ou jeton refusé : vérifie les deux." : `GitHub a répondu ${r.status}.`);
+    if (!(await r.json()).private) throw new Error("Ce dépôt est public : tes notes seraient visibles par tout le monde. Rends-le privé d'abord.");
+    stock.set("depot", cfg.depot); stock.set("jeton", cfg.jeton);
+    $("jeton").value = "";
+    demarrer();
+  } catch (err) { etat(err.message, true); }
+});
+
+$("deconnexion").onclick = () => { stock.del("jeton"); location.reload(); };
+
+async function rafraichir() {
+  if (enCours) return;
+  try {
+    await chargerNotes();
+    try { cours = (await lireJSON("edt.json")).data || []; } catch { cours = cours || []; }
+    etat(""); afficher();
+  } catch (e) { etat(e.message, true); }
+}
+
+function demarrer() {
+  $("connexion").hidden = true;
+  $("onglets").hidden = false; $("deconnexion").hidden = false;
+  afficher(); etat("Chargement…");
+  rafraichir();
+}
+
+window.addEventListener("hashchange", afficher);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && cfg.jeton) rafraichir(); });
+setInterval(() => { if (ongletActif() === "edt") afficherEdt(); }, 30 * 1000);
+
+if (cfg.jeton && cfg.depot) demarrer(); else $("connexion").hidden = false;
+</script>
+</body>
+</html>
